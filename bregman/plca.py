@@ -267,11 +267,24 @@ class PLCA(object):
         """
         norm = V.sum()
         V /= norm
+        
+        # make sure updateW is a list of length rank
+        # update defaults True if not specified
+        if isinstance(updateW, bool): 
+            updateW = [updateW] * rank
+        if len(updateW) < rank: 
+            updateW += [True] * (rank - len(updateW))
     
         params = cls(V, rank, **kwargs)
         iW, iZ, iH = params.initialize()
-    
-        W = iW if initW is None else initW.copy()
+        
+        # initialize W to iW and replace the first initW many
+        # TODO: these dims work for PLCA only, make work for SIPLCA
+        W = iW
+        if initW is not None:
+            for ni in range(initW.shape[1]):
+                W[:, ni] = initW[:, ni] 
+      
         Z = iZ if initZ is None else initZ.copy()
         H = iH if initH is None else initH.copy()
     
@@ -299,7 +312,12 @@ class PLCA(object):
     
             nW, nZ, nH = params.do_mstep(n)
     
-            if updateW:  W = nW
+            # selectively update W
+            # TODO: this only works for PLCA, extend for SIPLCA
+            for ni in range(rank):
+                if (updateW[ni]):
+                    W[:, ni] = nW[:, ni]
+
             if updateZ:  Z = nZ
             if updateH:  H = nH
     
